@@ -263,7 +263,7 @@ jobs:
 # Ref Page: https://automated-workflows.readthedocs.io/en/main/ref_docker/
   docker_build:
     needs: [set_github_outputs, test_suite]
-    uses: boromir674/automated-workflows/.github/workflows/docker.yml@v1.1.0
+    uses: boromir674/automated-workflows/.github/workflows/docker.yml@v1.11.0
     if: always()
     with:
       acceptance_policy: ${{ needs.set_github_outputs.outputs.PIPE_DOCKER_POLICY }}
