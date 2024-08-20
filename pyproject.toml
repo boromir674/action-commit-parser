@@ -133,6 +133,7 @@ mkdocstrings-python = { version = "^1.7.5", optional = true }
 mkdocs-literate-nav = { version = "^0.6.1", optional = true }
 pymdown-extensions = { version = "^10.5", optional = true }
 mkdocs-click = { version = "^0.8.1", optional = true }
+griffe = { version = "0.40.1", optional = true }
 
 ### EXTRAS ###
 [tool.poetry.extras]
@@ -159,6 +160,7 @@ docs = [
     "mkdocs-gen-files",
     "mkdocstrings",
     "mkdocstrings-python",
+    "griffe",
     "mkdocs-literate-nav",
     "pymdown-extensions",
     "mkdocs-click",
