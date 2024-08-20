@@ -70,7 +70,7 @@ if cli_module_path:
 This page provides documentation for our command line tools.
 
 ::: mkdocs-click
-    :module: biskotakigold.cli
+    :module: action_commit_parser.cli
     :command: main
 """
     # TODO: write better content for the CLI.md file
