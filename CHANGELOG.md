@@ -1,5 +1,37 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
+
+This project adheres to [Semantic Versioning](https://semver.org/).
+
+
+## 0.2.0 (2024-08-21)
+
+### Build
+- pin griffe to 0.40.1, to prevent just released broken built creash our CI Docs Build
+- start tracking poetry.lock
+
+### CI
+- disable automatic PyPI publish
+- set Test Matrix 'python version' factor to [3.10, 3.11, 3.12]
+- change trigger of CI/CD Pipeline to `branch` and `tag` pushes, such as:
+  - any `branch push` **except** for 'dev' and 'release' branches
+  - `tag push` of **run-ci** tag
+  - `tag push` of **Semantic Version** Tags with pattern **v*.*.*** 
+- trigger CI/CD for any branch push except 'dev' and 'release' branches
+- setup 'Release Me' Git Ops Process
+- reproduce docs build env using statically compiled pinned requirements
+- pin Reusable Workflow to v1.10.0 for making Github Release
+- use v1.11.0 of Docker Reusable Workflow
+
+### Docs
+- update cicd_mermaid diagram with up-to-date information from parsing workflow yaml
+- fix automatic CLI API Ref Page generation, using correct module name
+
+### Other
+- update gitignore with generated files during development
+
+
 ## 0.1.0 (2024-08-20)
 
 This is the **first** ever release of the **Action Commit Parser** Open-Source Project.
