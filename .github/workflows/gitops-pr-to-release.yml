@@ -1,0 +1,18 @@
+on:
+  push:
+    tags:
+      - release-me  # Request to be included in next Release and create a Release
+
+
+jobs:
+  pr_to_release:
+    uses: boromir674/automated-workflows/.github/workflows/go-pr-to-release.yml@18b20a331650752492a8ed614feb4057216b6547  # v1.12.0
+    with:
+      release_branch: ${{ vars.GIT_RELEASE_BRANCH || 'release' }}
+    secrets:
+      # - Worklfow calls 'create PR' API, thus needs 'PR Write Permission'
+      # - Worklfow calls 'create PR Label' API, thus needs 'PR Write Permission'
+      # - Worklfow calls 'enable auto-merge of PR' API, thus needs 'Contents Write Permission'
+      # - 'PR to Main' Workflow, of the 'Release Me' Process, should react when
+      #   code merges (through a PR) in release branch, thus needs 'Actions Write Permission'
+      github_pat: ${{ secrets.GH_TOKEN_GITOPS_RELEASE_ME }}
