@@ -380,3 +380,11 @@ jobs:
     secrets:
       # passing the GH_TOKEN PAT, to render in GH as ie: 'boromir674 released this yesterday', instead of 'github-actions released this yesterday'
       gh_token: ${{ secrets.GH_TOKEN }}
+
+
+  ### Git Ops: Check PR Acceptance ###
+  qa_signal:
+    needs: [test_suite, lint, docs]
+    uses: boromir674/automated-workflows/.github/workflows/go-single-status.yml@ffac270355ffe73cb8ab2bd2477ce6b20efca912  # v1.7.0
+    with:
+      needs_json: '${{ toJson(needs) }}'
