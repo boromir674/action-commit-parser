@@ -1,0 +1,57 @@
+name: Test Action
+on:
+  workflow_call:
+    inputs:
+      # TEST DATA: input
+      from_ref:
+        description: 'Git Ref to start Commit Generation from'
+        required: false
+        default: 'HEAD'
+      to_ref:
+        description: 'Git Ref to end Commit Generation to'
+        required: false
+        default: 'main'
+      # TEST DATA: expectations
+      expected_commits_array:
+        description: 'The JSON array of commits generated from the git log.'
+        required: true
+        type: string
+jobs:
+  test_generating_commits_between_2_refs_yields_expected_commits:
+    runs-on: ubuntu-latest
+    steps:
+      # GIVEN a git history and 2 Refs
+      - name: Checkout This Repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      # WHEN the Commit Parser Action is run between the 2 Refs
+      - name: Run Commit Parser Action between from ${{ inputs.from_ref }} to ${{ inputs.to_ref }} Refs
+        id: test_commit_parser
+        uses: ./  # Uses an action in the root directory
+        with:
+          from_ref: ${{ inputs.from_ref }}
+          to_ref: ${{ inputs.to_ref }}
+
+      # THEN the Action should output the expected commits
+      - name: Assert Action Output
+        run: |
+          echo "[DEBUG] Raw Output:"
+          echo '${{ steps.test_commit_parser.outputs.commits_array }}'
+          echo
+          echo "[DEBUG] JSON Output:"
+          echo '${{ steps.test_commit_parser.outputs.commits_array }}' | jq
+          echo
+
+          echo "[DEBUG] Raw Expected Output:"
+          echo '${{ inputs.expected_commits_array }}'
+          echo
+          echo "[DEBUG] JSON Expected Output:"
+          echo '${{ inputs.expected_commits_array }}' | jq
+          echo
+
+          # OPT 2
+          echo "[DEBUG] Comparing Outputs with jq:"
+          jq --exit-status --argjson expected '${{ inputs.expected_commits_array }}' '$expected == .' <<< '${{ steps.test_commit_parser.outputs.commits_array }}'
