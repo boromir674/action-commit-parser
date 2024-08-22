@@ -5,10 +5,12 @@ on:
       # TEST DATA: input
       from_ref:
         description: 'Git Ref to start Commit Generation from'
+        type: string
         required: false
         default: 'HEAD'
       to_ref:
         description: 'Git Ref to end Commit Generation to'
+        type: string
         required: false
         default: 'main'
       # TEST DATA: expectations
