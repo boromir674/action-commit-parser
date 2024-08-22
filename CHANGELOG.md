@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 (2024-08-22)
+
+### Changes
+
+#### Feature
+- implement Composite Action, leveraging 'git log --pretty=format:'{"message": "%s"},' command
+
+#### CI
+- switch from local action reference to 'dev' git ref
+- disable CI Jobs designed for testing Python client Code, since offer Composite Action
+- add Reusable Workflow with E2E Test Case Scenario, that calls action and asserts result
+
 
 ## 0.2.0 (2024-08-21)
 

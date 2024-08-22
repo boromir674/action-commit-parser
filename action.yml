@@ -1,0 +1,76 @@
+## Github Actions Metadata File ##
+# Defines inputs, outputs, and runs configuration for the action.
+name: 'Commit Parser'
+author: Konstantinos Lampridis
+description: "Parse message 'subjects' from Conventional Commits."
+
+inputs:
+  from_ref:  # id of input
+    description: 'Git Ref to start Commit Generation from'
+    required: false
+    default: 'HEAD'
+  to_ref:  # id of input
+    description: 'Git Ref to end Commit Generation to'
+    required: false
+    default: 'main'
+
+outputs:
+# Outputs are Unicode strings, and can be a maximum of 1 MB. The total of all outputs in a workflow run can be a maximum of 50 MB.
+  commits_array: # id of output
+    description: 'The list of commits generated from the git log.'
+    value: ${{ steps.git-log.outputs.commits_array }}
+
+runs:
+  ### COMPOSITE ###
+  using: "composite"
+  steps:
+    - name: Verify that the references exist
+      run: |
+        if ! git rev-parse "${{ inputs.from_ref }}" >/dev/null 2>&1; then
+          echo "[ERROR] from_ref '${{ inputs.from_ref }}' does not exist."
+          exit 1
+        fi
+
+        if ! git rev-parse "${{ inputs.to_ref }}" >/dev/null 2>&1; then
+          echo "[ERROR] to_ref '${{ inputs.to_ref }}' does not exist."
+          exit 1
+        fi
+      shell: bash
+
+    # Assuming linearity between the two Refs, we can use either Range or Symmetric Difference Notations
+    # OPT 1 - Symmetric Difference: v2.0...v1.0 to find new commits between v2.0 and v1.0 (order from newest/v2.0 to oldest/v1.0)
+    # OPT 2 - Range: v1.0..v2.0 to find new commits between v2.0 and v1.0 (order from newest/v2.0 to oldest/v1.0)
+    # https://git-scm.com/book/en/v2/Git-Tools-Revision-Selection
+
+    ### Generated commits assuming TO (ie v1.0) is linear ancestor of FROM (ie v2.0)
+    - name: Get Git Log between ${{ inputs.from_ref }} and ${{ inputs.to_ref }}
+      # --pretty=format:'{"hash": "%H", "message": "%s", "body": "%b"},'
+      run: |
+        # multi-line string
+        commits=$(git log --pretty=format:'{"message": "%s"},' "${{ inputs.from_ref }}...${{ inputs.to_ref }}")
+        echo "[INFO] commits: $commits"
+
+        # multi-line string
+        commits_array_json=$(echo "[$(echo "$commits" | sed '$ s/,$//')]")
+
+        # one-line string: if a commit Body has multiple lines, "joins" them with 'space' (' ')
+        echo "commits_array=$(echo ${commits_array_json} | jq -c '.')" >> $GITHUB_OUTPUT
+
+        echo "[INFO] Output Commits JSON: $(echo ${commits_array_json} | jq -c '.')"
+      id: git-log
+      shell: bash
+
+### DOCKER RUN: docker run <image_name> <args> ###
+#   using: 'docker'
+#   image: 'Dockerfile'
+#   args:
+#     - ${{ inputs.from_ref }}
+#     - ${{ inputs.to_ref }}
+
+
+# To personalize and distinguish your action, create a badge with color and Feather icon
+# Note: Badges are shown next to your action name in GitHub Marketplace.
+branding:
+  icon: git-commit  # https://feathericons.com/
+  color: 'gray-dark'  # background color of the badge
+  # white, black, yellow, blue, green, orange, red, purple, or gray-dark
