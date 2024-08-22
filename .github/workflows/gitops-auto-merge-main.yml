@@ -8,7 +8,7 @@ jobs:
   auto_merge_main_pr:
     uses: boromir674/automated-workflows/.github/workflows/go-auto-merge-main.yml@18b20a331650752492a8ed614feb4057216b6547  # v1.12.0
     with:
-      commit_message: 'My Shiny Software Package'
+      commit_message: 'Action Commit Parser'
       # Optional inputs
       main_branch: ${{ vars.GIT_MAIN_BRANCH || 'main' }}
       release_branch: ${{ vars.GIT_RELEASE_BRANCH || 'release' }}
