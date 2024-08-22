@@ -127,16 +127,34 @@ jobs:
     ## Code Visualization - Pipeline Settings ##
       PIPE_CODE_VIZ_POLICY: ${{ steps.derive_code_viz_policy.outputs.POL }}
 
-  ### TEST Action in End-2-End Scenario, using Callable Test Workflows ###
+  ### TEST Action in various End-2-End Scenarios ###
   test:
-    uses: ./.github/workflows/_test_action.yml
-    if: always()
+    uses: ./.github/workflows/ci_test.yml
     with:
-      # TEST DATA: input refs with 2 commits in between -> yields 3 commits
-      from_ref: fa4179f22acd503331d78f79e14324c3b4f05153  # v0.2.0
-      to_ref: 6b8a0707f43c895a7a180caee41b0aeb0a6bf77e
-      # TEST DATA: Expectations is JSON array of 3 commits
-      expected_commits_array: '[{"message": "[NEW] Action Commit Parser v0.2.0 Release"},{"message": "build(docs): pin griffe to 0.40.1, to prevent just released broken built creash our CI Docs Build"},{"message": "ci: reproduce docs build env using statically compiled pinned requirements"}]'
+      test_matrix: |
+        {
+          "test_data": [
+            {
+              "from_ref": "fa4179f22acd503331d78f79e14324c3b4f05153",
+              "to_ref": "6b8a0707f43c895a7a180caee41b0aeb0a6bf77e",
+              "expected_commits_array": [
+                {"message": "[NEW] Action Commit Parser v0.2.0 Release"},
+                {"message": "build(docs): pin griffe to 0.40.1, to prevent just released broken built creash our CI Docs Build"},
+                {"message": "ci: reproduce docs build env using statically compiled pinned requirements"}
+              ]
+            }
+          ]
+        }
+
+  ### TEST Action in End-2-End Scenario, using Callable Test Workflows ###
+  # test:
+  #   uses: ./.github/workflows/_test_action.yml
+  #   with:
+  #     # TEST DATA: input refs with 2 commits in between -> yields 3 commits
+  #     from_ref: fa4179f22acd503331d78f79e14324c3b4f05153  # v0.2.0
+  #     to_ref: 6b8a0707f43c895a7a180caee41b0aeb0a6bf77e
+  #     # TEST DATA: Expectations is JSON array of 3 commits
+  #     expected_commits_array: '[{"message": "[NEW] Action Commit Parser v0.2.0 Release"},{"message": "build(docs): pin griffe to 0.40.1, to prevent just released broken built creash our CI Docs Build"},{"message": "ci: reproduce docs build env using statically compiled pinned requirements"}]'
 
 # RUN TEST SUITE ON ALL PLATFORMS
   unit_tests:
