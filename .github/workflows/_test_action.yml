@@ -32,7 +32,8 @@ jobs:
       # WHEN the Commit Parser Action is run between the 2 Refs
       - name: Run Commit Parser Action between from ${{ inputs.from_ref }} to ${{ inputs.to_ref }} Refs
         id: test_commit_parser
-        uses: ./  # Uses an action in the root directory
+        uses: boromir674/action-commit-parser@dev
+        # uses: ./  # Uses an action in the root directory
         with:
           from_ref: ${{ inputs.from_ref }}
           to_ref: ${{ inputs.to_ref }}
