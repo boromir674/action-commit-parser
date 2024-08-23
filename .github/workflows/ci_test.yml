@@ -25,6 +25,7 @@ on:
       #   type: string
 jobs:
   ### TEST Action in End-2-End Scenario, using Callable Test Workflows ###
+  # in this Test Case commits examined contain a-zA-Z0-9 and parenthesis (no single or double quotes)
   test_simple_case:
     uses: ./.github/workflows/_test_action.yml
     with:
@@ -58,13 +59,17 @@ jobs:
     #   expected_commits_array: ${{ matrix.test_data.expected_commits_array }}
 
     runs-on: ubuntu-latest
+    env:
+      # implicit convertion to string, by serializing inner json array representation
+      EXPECTED_COMMITS_ARRAY_SERIALIZED: ${{ toJSON(matrix.test_data.expected_commits_array) }}
     steps:
       # SANITY CHECKs
       - name: Print Test Data
         run: |
           echo '${{ matrix.test_data.from_ref }}'
           echo '${{ matrix.test_data.to_ref }}'
-          echo '${{ toJSON(matrix.test_data.expected_commits_array) }}'
+          echo "${EXPECTED_COMMITS_ARRAY_SERIALIZED}"
+
       - run: echo '${{ toJSON(matrix.test_data) }}' | jq
 
       # GIVEN a git history and 2 Refs
@@ -83,34 +88,24 @@ jobs:
           from_ref: ${{ matrix.test_data.from_ref }}
           to_ref: ${{ matrix.test_data.to_ref }}
 
-      # THEN the Action should output the expected commits
-      - name: Assert Action Output
-        run: |
-          echo "[DEBUG] Raw Output:"
-          echo '${{ steps.test_commit_parser.outputs.commits_array }}'
-          echo
-          echo "[DEBUG] JSON Output:"
-          echo '${{ steps.test_commit_parser.outputs.commits_array }}' | jq
-          echo
+      - name: Print Raw RUNTIME Output from Action
+        run: echo '${{ steps.test_commit_parser.outputs.commits_array }}'
 
-          echo "[DEBUG] Raw Expected Output:"
-          echo '${{ matrix.test_data.expected_commits_array }}'
-          echo
-          echo "[DEBUG] JSON Expected Output:"
-          echo '${{ toJSON(matrix.test_data.expected_commits_array) }}' | jq
-          echo
+      - name: Print Serialized (toJSON) Raw RUNTIME Output from Action
+        run: echo ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }} | jq
 
-          echo "[DEBUG] Comparing Outputs with jq:"
-          jq --exit-status --argjson expected '${{ toJSON(matrix.test_data.expected_commits_array) }}' '$expected == .' <<< '${{ steps.test_commit_parser.outputs.commits_array }}'
+      - name: Print number of lines of Serialized Output JSON
+        run: echo ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }} | wc -l
 
       # Should be safe as long as message does not have single or double quotes
       # TODO escape single-quotes
+      # currently if subject has single quote the below will not fail but has a bug because the single-quotes get eliminated. if one suqote maybe it even breaks
       - name: Test different commands for storing JSON output, GITHUB_ENV variable
         run: |
           echo 'COMMITS_JSON_ARRAY=${{ steps.test_commit_parser.outputs.commits_array }}'
           # echo "COMMITS_JSON_ARRAY=${{ steps.test_commit_parser.outputs.commits_array }}"
       
-      - name: Verify Bash Substitutions work, with jq -r flag
+      - name: Sanity Check exampe hard-coded Bash Substitutions work, with jq -r flag
         run: |
           echo "HEADER
 
@@ -120,24 +115,97 @@ jobs:
 
       # SANITY CHECKs
       - name: Test converting to JSON array of messages
-        run: echo '${{ steps.test_commit_parser.outputs.commits_array }}' | jq -c '[.[].message]'
+        run: echo ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }} | jq -c '[.[].message]'
       
       - name: Test converting to single-line BASH array of double-quoted messages
-        run: echo '${{ steps.test_commit_parser.outputs.commits_array }}' | jq -c '.[].message'
+        run: echo ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }} | jq -c '.[].message'
 
       - name: Store JSON Array of objects as JSON Array of strings, in a GITHUB_ENV Variable
-        run: echo COMMITS_ARRAY=$(echo '${{ steps.test_commit_parser.outputs.commits_array }}' | jq -c '[.[].message]') >> $GITHUB_ENV
+        # IMPORTANT: toJSON includes outer double-quotes "
+        run: echo COMMITS_ARRAY=$(echo ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }} | jq -c '[.[].message]') >> $GITHUB_ENV
 
       # TEST AWK processing
       - name: Test awk processing works as epexcted
-        run: echo '${{ env.COMMITS_ARRAY }}' | jq -r '.[]' | awk '{print "- " $0}'
+        run: echo ${{ toJSON(env.COMMITS_ARRAY) }} | jq -r '.[]' | awk '{print "- " $0}'
 
       # SANITY CHECKs
-      - name: Read the Stored Output JSON from GITHUB_ENV
-        run: echo "${COMMITS_ARRAY}" | jq
-
       - name: Read Output JSON from GITHUB_ENV template, between double-quotes GITHUB_ENV
-        run: echo "${{ env.COMMITS_ARRAY }}" | jq
+        run: echo ${{ toJSON(env.COMMITS_ARRAY) }} | jq
 
-      - name: Read Output JSON from GITHUB_ENV template, between single-quotes GITHUB_ENV
-        run: echo '${{ env.COMMITS_ARRAY }}' | jq
+      # business logic can handle single-quotes
+      - name: Verify awk embeds subjects in Bash Substitutions, as expected
+        if: always()
+        run: |
+          echo "HEADER
+
+          $(echo [\"a \'single-quoted\' AND a \\\"double-quoted\\\" term in the 1st line\", \"and something else in the 2nd line\", \"and a line with 1 double-quote: \\\"\", \"and a line with one single-quote: \'\"] | jq -r '.[]' | awk '{print "- " $0}')
+
+          FOOTER"
+
+      - run: echo ARRAY=$(echo ${{ toJSON(env.COMMITS_ARRAY) }}) >> $GITHUB_ENV
+      - run: |
+          export ela="[1, 2, \"a'b\\\"c\"]"
+          echo "bla $(echo ${ela} | jq -r | jq -rc '.[]')"
+
+      - name: Verify awk embeds Runtime jq output in Bash Substitutions, as expected
+        if: always()
+        env:
+          ARRAY_2: ${{ toJSON(env.COMMITS_ARRAY) }}
+        run: |
+          echo "HEADER
+
+          $(echo ${ARRAY} | jq -r | jq -r '.[]' | awk '{print "- " $0}')
+
+          $(echo ${ARRAY_2} | jq -r | jq -r '.[]' | awk '{print "- " $0}')
+
+          $(echo ${{ env.ARRAY_2 }} | jq -r | jq -r '.[]' | awk '{print "- " $0}')
+
+          FOOTER"
+
+      - name: Verify WRONG syntax for awk embed of jq output in Bash Substitutions
+        if: always()
+        run: |
+          echo "HEADER
+
+          $(echo ${{ env.ARRAY }} | jq -r | jq -r '.[]' | awk '{print "- " $0}')
+
+          FOOTER"
+
+      # Sanity Checks
+      # - name: Programmatically store EXPECTED JSON Commits Array in GITHUB_ENV
+      #   if: always()
+      #   run: echo "EXPECTED_COMMITS_ARRAY_SERIALIZED_2=$(echo ${{ toJSON(matrix.test_data.expected_commits_array) }})" >> $GITHUB_ENV
+
+      - name: Print Serialized EXPECTED JSON Commits Array from GITHUB_ENV
+        if: always()
+        run: echo "${EXPECTED_COMMITS_ARRAY_SERIALIZED}"
+
+      - name: Process with JQ the Serialized EXPECTED JSON Commits Array
+        if: always()
+        run: echo "${EXPECTED_COMMITS_ARRAY_SERIALIZED}" | jq
+
+      - name: Process with JQ and '-r flag' the Serialized EXPECTED JSON Commits Array
+        if: always()
+        run: echo "${EXPECTED_COMMITS_ARRAY_SERIALIZED}" | jq -r
+
+      # THEN ASSERT the Action should output the expected commits
+      - name: Assert the Expected Commit Subject Messages are returned at Runtime
+        if: always()
+        id: assert_action_expected_commits
+        run: |
+          echo ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }} | jq -c '[.[].message]'
+          jq --exit-status --argjson expected "${EXPECTED_COMMITS_ARRAY_SERIALIZED}" '$expected == .' <<< ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }}
+
+      - name: Print Runtime and Expected for sanity check
+        if: always()
+        run: |
+          echo "[DEBUG] Runtime RAW Output:"
+          echo '${{ steps.test_commit_parser.outputs.commits_array }}'
+          echo
+          echo "[DEBUG] Runtime JSON Output:"
+          echo ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }} | jq
+          echo
+
+          echo "[DEBUG] JSON Expected Output:"
+          echo "${EXPECTED_COMMITS_ARRAY_SERIALIZED}" | jq
+          echo
