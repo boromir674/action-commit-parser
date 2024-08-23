@@ -60,7 +60,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # SANITY CHECKs
-      - run: |
+      - name: Print Test Data
+        run: |
           echo '${{ matrix.test_data.from_ref }}'
           echo '${{ matrix.test_data.to_ref }}'
           echo '${{ toJSON(matrix.test_data.expected_commits_array) }}'
@@ -101,3 +102,42 @@ jobs:
 
           echo "[DEBUG] Comparing Outputs with jq:"
           jq --exit-status --argjson expected '${{ toJSON(matrix.test_data.expected_commits_array) }}' '$expected == .' <<< '${{ steps.test_commit_parser.outputs.commits_array }}'
+
+      # Should be safe as long as message does not have single or double quotes
+      # TODO escape single-quotes
+      - name: Test different commands for storing JSON output, GITHUB_ENV variable
+        run: |
+          echo 'COMMITS_JSON_ARRAY=${{ steps.test_commit_parser.outputs.commits_array }}'
+          # echo "COMMITS_JSON_ARRAY=${{ steps.test_commit_parser.outputs.commits_array }}"
+      
+      - name: Verify Bash Substitutions work, with jq -r flag
+        run: |
+          echo "HEADER
+
+          $(echo [\"a \'single-quoted\' AND a \\\"double-quoted\\\" term in the 1st line\", \"and something else in the 2nd line\", \"and a line with 1 double-quote: \\\"\", \"and a line with one single-quote: \'\"] | jq -r '.[]')
+       
+          FOOTER"
+
+      # SANITY CHECKs
+      - name: Test converting to JSON array of messages
+        run: echo '${{ steps.test_commit_parser.outputs.commits_array }}' | jq -c '[.[].message]'
+      
+      - name: Test converting to single-line BASH array of double-quoted messages
+        run: echo '${{ steps.test_commit_parser.outputs.commits_array }}' | jq -c '.[].message'
+
+      - name: Store JSON Array of objects as JSON Array of strings, in a GITHUB_ENV Variable
+        run: echo COMMITS_ARRAY=$(echo '${{ steps.test_commit_parser.outputs.commits_array }}' | jq -c '[.[].message]') >> $GITHUB_ENV
+
+      # TEST AWK processing
+      - name: Test awk processing works as epexcted
+        run: echo '${{ env.COMMITS_ARRAY }}' | jq -r '.[]' | awk '{print "- " $0}'
+
+      # SANITY CHECKs
+      - name: Read the Stored Output JSON from GITHUB_ENV
+        run: echo "${COMMITS_ARRAY}" | jq
+
+      - name: Read Output JSON from GITHUB_ENV template, between double-quotes GITHUB_ENV
+        run: echo "${{ env.COMMITS_ARRAY }}" | jq
+
+      - name: Read Output JSON from GITHUB_ENV template, between single-quotes GITHUB_ENV
+        run: echo '${{ env.COMMITS_ARRAY }}' | jq
