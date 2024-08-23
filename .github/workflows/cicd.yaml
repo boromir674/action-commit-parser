@@ -142,9 +142,28 @@ jobs:
                 {"message": "build(docs): pin griffe to 0.40.1, to prevent just released broken built creash our CI Docs Build"},
                 {"message": "ci: reproduce docs build env using statically compiled pinned requirements"}
               ]
+            },
+            {
+              "from_ref": "f53bd65c181f0c9a77dab6489d147033a8628d87",
+              "to_ref": "335cb29b35ce66c030df077f6239fe5e46d96cec",
+              "expected_commits_array": [
+                "ci: switch from local action reference to 'dev' git ref",
+                "chore: clean code",
+                "ci(pipeline): disable CI Jobs designed for testing Python client Code, since offer Composite Action"
+              ]
             }
           ]
         }
+
+
+# TODO REPRODUCE THE case where a commit message has a single-quote character
+
+# TODO EMULATE gh pr --body "MARKDOWN" generation with commit messages to test client use case doesn not break
+
+# EG         run: echo "COMMITS_ARRAY=$(echo '${{ steps.commit_generator.outputs.commits_array }}' | jq -c '[.[0:-1] | .[].message]')" >> $GITHUB_EN
+
+# EG         run: echo "COMMITS_ARRAY=$(echo '${{ toJSON(steps.commit_generator.outputs.commits_array) }}' | jq -c '[.[0:-1] | .[].message]')" >> $GITHUB_EN
+
 
   ### TEST Action in End-2-End Scenario, using Callable Test Workflows ###
   # test:
