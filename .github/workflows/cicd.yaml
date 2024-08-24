@@ -148,8 +148,7 @@ jobs:
               "to_ref": "335cb29b35ce66c030df077f6239fe5e46d96cec",
               "expected_commits_array": [
                 {"message": "ci: switch from local action reference to 'dev' git ref"},
-                {"message": "chore: clean code"},
-                {"message": "ci(pipeline): disable CI Jobs designed for testing Python client Code, since offer Composite Action"}
+                {"message": "chore: clean code"}
               ]
             },
             {
