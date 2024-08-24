@@ -9,6 +9,6 @@ tags:
 
 Flow Chart, of Jobs Dependencies in the Pipeline.
 
-**config: ./.github/workflows/test.yaml**
+**config: `./.github/workflows/cicd.yaml`**
 
 {% include 'cicd_mermaid.md' %}

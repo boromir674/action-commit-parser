@@ -37,17 +37,14 @@ runs:
         fi
       shell: bash
 
-    # Assuming linearity between the two Refs, we can use either Range or Symmetric Difference Notations
-    # OPT 1 - Symmetric Difference: v2.0...v1.0 to find new commits between v2.0 and v1.0 (order from newest/v2.0 to oldest/v1.0)
-    # OPT 2 - Range: v1.0..v2.0 to find new commits between v2.0 and v1.0 (order from newest/v2.0 to oldest/v1.0)
+    ### Generated commits FROM to TO Refs ###
+    # Commits Reachable from FROM but NOT from TO
     # https://git-scm.com/book/en/v2/Git-Tools-Revision-Selection
-
-    ### Generated commits assuming TO (ie v1.0) is linear ancestor of FROM (ie v2.0)
     - name: Get Git Log between ${{ inputs.from_ref }} and ${{ inputs.to_ref }}
       # --pretty=format:'{"hash": "%H", "message": "%s", "body": "%b"},'
       run: |
         # multi-line string
-        commits=$(git log --pretty=format:'{"message": "%s"},' "${{ inputs.from_ref }}...${{ inputs.to_ref }}")
+        commits=$(git log --pretty=format:'{"message": "%s"},' "${{ inputs.to_ref }}..${{ inputs.from_ref }}")
         echo "[INFO] commits: $commits"
 
         # multi-line string

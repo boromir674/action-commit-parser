@@ -1,0 +1,211 @@
+name: CI Tests Action
+on:
+  workflow_call:
+    inputs:
+      test_matrix:
+        description: 'JSON Object like {"test_data": [{from_ref?, to_ref?, expected_commits_array}, {...}]}; the Job Matrix: A JSON object of key (factors) mapping to arrays (of test cases to run).'
+        required: true
+        type: string
+
+      # # TEST DATA: input
+      # from_ref:
+      #   description: 'Git Ref to start Commit Generation from'
+      #   type: string
+      #   required: false
+      #   default: 'HEAD'
+      # to_ref:
+      #   description: 'Git Ref to end Commit Generation to'
+      #   type: string
+      #   required: false
+      #   default: 'main'
+      # # TEST DATA: expectations
+      # expected_commits_array:
+      #   description: 'The JSON array of commits generated from the git log.'
+      #   required: true
+      #   type: string
+jobs:
+  ### TEST Action in End-2-End Scenario, using Callable Test Workflows ###
+  # in this Test Case commits examined contain a-zA-Z0-9 and parenthesis (no single or double quotes)
+  test_simple_case:
+    uses: ./.github/workflows/_test_action.yml
+    with:
+      # TEST DATA: input refs with 2 commits in between -> yields 3 commits
+      from_ref: fa4179f22acd503331d78f79e14324c3b4f05153  # v0.2.0
+      to_ref: 6b8a0707f43c895a7a180caee41b0aeb0a6bf77e
+      # TEST DATA: Expectations is JSON array of 3 commits
+      expected_commits_array: '[{"message": "[NEW] Action Commit Parser v0.2.0 Release"},{"message": "build(docs): pin griffe to 0.40.1, to prevent just released broken built creash our CI Docs Build"},{"message": "ci: reproduce docs build env using statically compiled pinned requirements"}]'
+
+  test_job_matrix:
+    # runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJSON(inputs.test_matrix) }}
+    # steps:
+    #   # SANITY CHECKs
+    #   - name: Access Parsed Data
+    #     run: |
+    #       echo '${{ matrix.test_data.from_ref }}'
+    #       echo '${{ matrix.test_data.to_ref }}'
+    #       echo '${{ matrix.test_data.expected_commits_array }}'
+
+    #   - name: Print Test Case Data, such business logic inputs and expectations
+    #     run: echo '${{ toJSON(matrix.test_data) }}' | jq
+
+    #   # Run Test Case: GIVEN, WHEN, THEN
+    #   - name: 'Run End 2 End Test Case: GIVEN, WHEN, THEN'
+    # uses: ./.github/workflows/_test_action.yml
+    # with:
+    #   from_ref: ${{ matrix.test_data.from_ref }}
+    #   to_ref: ${{ matrix.test_data.to_ref }}
+    #   expected_commits_array: ${{ matrix.test_data.expected_commits_array }}
+
+    runs-on: ubuntu-latest
+    env:
+      # implicit convertion to string, by serializing inner json array representation
+      EXPECTED_COMMITS_ARRAY_SERIALIZED: ${{ toJSON(matrix.test_data.expected_commits_array) }}
+    steps:
+      # SANITY CHECKs
+      - name: Print Test Data
+        run: |
+          echo '${{ matrix.test_data.from_ref }}'
+          echo '${{ matrix.test_data.to_ref }}'
+          echo "${EXPECTED_COMMITS_ARRAY_SERIALIZED}"
+
+      - run: echo '${{ toJSON(matrix.test_data) }}' | jq
+
+      # GIVEN a git history and 2 Refs
+      - name: Checkout This Repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      # WHEN the Commit Parser Action is run between the 2 Refs
+      - name: Run Commit Parser Action between from ${{ inputs.from_ref }} to ${{ inputs.to_ref }} Refs
+        id: test_commit_parser
+        uses: boromir674/action-commit-parser@dev
+        # uses: ./  # Uses an action in the root directory
+        with:
+          from_ref: ${{ matrix.test_data.from_ref }}
+          to_ref: ${{ matrix.test_data.to_ref }}
+
+      - name: Print Raw RUNTIME Output from Action
+        run: echo '${{ steps.test_commit_parser.outputs.commits_array }}'
+
+      - name: Print Serialized (toJSON) Raw RUNTIME Output from Action
+        run: echo ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }} | jq
+
+      - name: Print number of lines of Serialized Output JSON
+        run: echo ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }} | wc -l
+
+      # Should be safe as long as message does not have single or double quotes
+      # TODO escape single-quotes
+      # currently if subject has single quote the below will not fail but has a bug because the single-quotes get eliminated. if one suqote maybe it even breaks
+      - name: Test different commands for storing JSON output, GITHUB_ENV variable
+        run: |
+          echo 'COMMITS_JSON_ARRAY=${{ steps.test_commit_parser.outputs.commits_array }}'
+          # echo "COMMITS_JSON_ARRAY=${{ steps.test_commit_parser.outputs.commits_array }}"
+      
+      - name: Sanity Check exampe hard-coded Bash Substitutions work, with jq -r flag
+        run: |
+          echo "HEADER
+
+          $(echo [\"a \'single-quoted\' AND a \\\"double-quoted\\\" term in the 1st line\", \"and something else in the 2nd line\", \"and a line with 1 double-quote: \\\"\", \"and a line with one single-quote: \'\"] | jq -r '.[]')
+       
+          FOOTER"
+
+      # SANITY CHECKs
+      - name: Test converting to JSON array of messages
+        run: echo ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }} | jq -c '[.[].message]'
+      
+      - name: Test converting to single-line BASH array of double-quoted messages
+        run: echo ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }} | jq -c '.[].message'
+
+      - name: Store JSON Array of objects as JSON Array of strings, in a GITHUB_ENV Variable
+        # IMPORTANT: toJSON includes outer double-quotes "
+        run: echo COMMITS_ARRAY=$(echo ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }} | jq -c '[.[].message]') >> $GITHUB_ENV
+
+      # TEST AWK processing
+      - name: Test awk processing works as epexcted
+        run: echo ${{ toJSON(env.COMMITS_ARRAY) }} | jq -r '.[]' | awk '{print "- " $0}'
+
+      # SANITY CHECKs
+      - name: Read Output JSON from GITHUB_ENV template, between double-quotes GITHUB_ENV
+        run: echo ${{ toJSON(env.COMMITS_ARRAY) }} | jq
+
+      # business logic can handle single-quotes
+      - name: Verify awk embeds subjects in Bash Substitutions, as expected
+        if: always()
+        run: |
+          echo "HEADER
+
+          $(echo [\"a \'single-quoted\' AND a \\\"double-quoted\\\" term in the 1st line\", \"and something else in the 2nd line\", \"and a line with 1 double-quote: \\\"\", \"and a line with one single-quote: \'\"] | jq -r '.[]' | awk '{print "- " $0}')
+
+          FOOTER"
+
+      - run: echo ARRAY=$(echo ${{ toJSON(env.COMMITS_ARRAY) }}) >> $GITHUB_ENV
+      - run: |
+          export ela="[1, 2, \"a'b\\\"c\"]"
+          echo "bla $(echo ${ela} | jq -r | jq -rc '.[]')"
+
+      - name: Verify awk embeds Runtime jq output in Bash Substitutions, as expected
+        if: always()
+        env:
+          ARRAY_2: ${{ toJSON(env.COMMITS_ARRAY) }}
+        run: |
+          echo "HEADER
+
+          $(echo ${ARRAY} | jq -r | jq -r '.[]' | awk '{print "- " $0}')
+
+          $(echo ${ARRAY_2} | jq -r | jq -r '.[]' | awk '{print "- " $0}')
+
+          $(echo ${{ env.ARRAY_2 }} | jq -r | jq -r '.[]' | awk '{print "- " $0}')
+
+          FOOTER"
+
+      - name: Verify WRONG syntax for awk embed of jq output in Bash Substitutions
+        if: always()
+        run: |
+          echo "HEADER
+
+          $(echo ${{ env.ARRAY }} | jq -r | jq -r '.[]' | awk '{print "- " $0}')
+
+          FOOTER"
+
+      # Sanity Checks
+      # - name: Programmatically store EXPECTED JSON Commits Array in GITHUB_ENV
+      #   if: always()
+      #   run: echo "EXPECTED_COMMITS_ARRAY_SERIALIZED_2=$(echo ${{ toJSON(matrix.test_data.expected_commits_array) }})" >> $GITHUB_ENV
+
+      - name: Print Serialized EXPECTED JSON Commits Array from GITHUB_ENV
+        if: always()
+        run: echo "${EXPECTED_COMMITS_ARRAY_SERIALIZED}"
+
+      - name: Process with JQ the Serialized EXPECTED JSON Commits Array
+        if: always()
+        run: echo "${EXPECTED_COMMITS_ARRAY_SERIALIZED}" | jq
+
+      - name: Process with JQ and '-r flag' the Serialized EXPECTED JSON Commits Array
+        if: always()
+        run: echo "${EXPECTED_COMMITS_ARRAY_SERIALIZED}" | jq -r
+
+      # THEN ASSERT the Action should output the expected commits
+      - name: Assert the Expected Commit Subject Messages are returned at Runtime
+        if: always()
+        id: assert_action_expected_commits
+        run: |
+          echo ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }} | jq -c '[.[].message]'
+          jq --exit-status --argjson expected "${EXPECTED_COMMITS_ARRAY_SERIALIZED}" '$expected == .' <<< ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }}
+
+      - name: Print Runtime and Expected for sanity check
+        if: always()
+        run: |
+          echo "[DEBUG] Runtime RAW Output:"
+          echo '${{ steps.test_commit_parser.outputs.commits_array }}'
+          echo
+          echo "[DEBUG] Runtime JSON Output:"
+          echo ${{ toJSON(steps.test_commit_parser.outputs.commits_array) }} | jq
+          echo
+
+          echo "[DEBUG] JSON Expected Output:"
+          echo "${EXPECTED_COMMITS_ARRAY_SERIALIZED}" | jq
+          echo
