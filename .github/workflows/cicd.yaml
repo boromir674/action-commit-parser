@@ -152,6 +152,14 @@ jobs:
                 {"message": "ci(pipeline): disable CI Jobs designed for testing Python client Code, since offer Composite Action"}
               ]
             }
+            {
+              "from_ref": "6b8a070",
+              "to_ref": "71da7d8",
+              "expected_commits_array": [
+                {"message": "ci(gh-release): pin Reusable Workflow to v1.10.0 for making Github Release"},
+                {"message": "chore(gitignore): update gitignore with generated files during development"}
+              ]
+            }
           ]
         }
 
