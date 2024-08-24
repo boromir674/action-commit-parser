@@ -55,8 +55,9 @@ nav:
     - "Quick Start": index.md
   - API References: reference/
   - Topics:
-    - "Docker": build-process_DAG.md
-    - "CI/CD": cicd.md
+    - "Commits Range": topic_git_log.md
+    - "Contributing":
+      - "CI/CD": cicd.md
   - tags: tags.md
 
 
