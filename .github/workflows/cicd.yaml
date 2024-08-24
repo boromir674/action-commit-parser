@@ -151,7 +151,7 @@ jobs:
                 {"message": "chore: clean code"},
                 {"message": "ci(pipeline): disable CI Jobs designed for testing Python client Code, since offer Composite Action"}
               ]
-            }
+            },
             {
               "from_ref": "6b8a070",
               "to_ref": "71da7d8",
