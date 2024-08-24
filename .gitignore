@@ -166,6 +166,10 @@ node_modules/
 package-lock\.json
 package\.json
 
-# Case Specific files / Generated during Development
+# Project Specific / Generated during Development
+## From our tox environments
 reqs-docs.txt
+reqs.txt
+
+## Other
 gen-config.yml

@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.0.0 (2024-08-24)
+
+Major Release since **Public API** has been stable.
+
+### Changes
+
+#### Fix
+- be invariant of possible branch X updates when TO Ref is X branch & FROM is branched off of TO
+
+#### Test
+- add Test Case that expects 2 commits to be generated
+- verify that client code can parse and embed commits Array with special characters in subjects
+- assert action JSON output can be stored in GITHUB_ENV
+- verify action can parse commit message subjects that include single-quotes
+
+#### Docs
+- add `Commits Range Topic Page`
+- clean up white-space in README.md
+
+#### CI
+- fix docs-live tox environment
+- automatically spawn CI Test Cases, by calling Test Worklfow, with dynamic input Matrix
+- fix Automated Github Release logic for making a Prod or Draft Release
+- use corresponding Action Project Name in message of merge-to-main commit
+
+#### Other
+- update gitignore to exclude development artifacts
+
+
 ## 0.3.0 (2024-08-22)
 
 ### Changes
