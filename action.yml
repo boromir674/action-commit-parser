@@ -13,6 +13,10 @@ inputs:
     description: 'Git Ref to end Commit Generation to'
     required: false
     default: 'main'
+  dir:  # id of input
+    description: 'Directory to run the git log command; should have the .git folder'
+    required: false
+    default: '.'
 
 outputs:
 # Outputs are Unicode strings, and can be a maximum of 1 MB. The total of all outputs in a workflow run can be a maximum of 50 MB.
@@ -25,6 +29,7 @@ runs:
   using: "composite"
   steps:
     - name: Verify that the references exist
+      working-directory: ${{ inputs.dir }}
       run: |
         if ! git rev-parse "${{ inputs.from_ref }}" >/dev/null 2>&1; then
           echo "[ERROR] from_ref '${{ inputs.from_ref }}' does not exist."
@@ -42,6 +47,7 @@ runs:
     # https://git-scm.com/book/en/v2/Git-Tools-Revision-Selection
     - name: Get Git Log between ${{ inputs.from_ref }} and ${{ inputs.to_ref }}
       # --pretty=format:'{"hash": "%H", "message": "%s", "body": "%b"},'
+      working-directory: ${{ inputs.dir }}
       run: |
         # multi-line string
         commits=$(git log --pretty=format:'{"message": "%s"},' "${{ inputs.to_ref }}..${{ inputs.from_ref }}")
