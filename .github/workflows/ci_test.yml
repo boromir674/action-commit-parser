@@ -154,11 +154,21 @@ jobs:
         run: |
           echo "HEADER
 
+          1
+
           $(echo ${ARRAY} | jq -r | jq -r '.[]' | awk '{print "- " $0}')
+
+          2
 
           $(echo ${ARRAY_2} | jq -r | jq -r '.[]' | awk '{print "- " $0}')
 
+          3
+
           $(echo ${{ env.ARRAY_2 }} | jq -r | jq -r '.[]' | awk '{print "- " $0}')
+
+          4
+
+          $(echo ${COMMITS_ARRAY} | jq -r | jq -r '.[]' | awk '{print "- " $0}')
 
           FOOTER"
 
@@ -167,7 +177,13 @@ jobs:
         run: |
           echo "HEADER
 
+          1
+
           $(echo ${{ env.ARRAY }} | jq -r | jq -r '.[]' | awk '{print "- " $0}')
+
+          2
+
+          $(echo ${{ env.COMMITS_ARRAY }} | jq -r | jq -r '.[]' | awk '{print "- " $0}')
 
           FOOTER"
 
