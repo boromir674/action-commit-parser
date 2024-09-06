@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.1.0 (2024-09-06)
+
+Allow running `git` on custom location instead of default `.`.
+
+### Changes
+
+#### Feature
+- allow running git on different directory, through the new optional 'dir' action input
+
+
 ## 1.0.0 (2024-08-24)
 
 Major Release since **Public API** has been stable.
